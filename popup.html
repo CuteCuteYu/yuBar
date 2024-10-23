@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HTTP Request Inspector</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>HTTP Request Inspector</h1>
+    </div>
+    
+    <div class="request-section">
+      <div class="url-section">
+        <label for="url">URL:</label>
+        <input type="text" id="url" class="full-width">
+      </div>
+
+      <div class="method-section">
+        <label for="method">Method:</label>
+        <select id="method">
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="DELETE">DELETE</option>
+          <option value="HEAD">HEAD</option>
+          <option value="OPTIONS">OPTIONS</option>
+        </select>
+      </div>
+
+      <div class="headers-section">
+        <label>Headers:</label>
+        <div id="headers-container">
+          <!-- Headers will be added dynamically -->
+        </div>
+        <button id="add-header" class="btn-secondary">Add Header</button>
+      </div>
+
+      <div class="body-section">
+        <label for="request-body">Request Body:</label>
+        <textarea id="request-body" rows="5" class="full-width"></textarea>
+      </div>
+
+      <div class="actions">
+        <button id="capture" class="btn-primary">Capture Current</button>
+        <button id="send" class="btn-primary">Send Request</button>
+        <button id="clear" class="btn-secondary">Clear</button>
+      </div>
+    </div>
+
+    <div class="response-section">
+      <h2>Response</h2>
+      <pre id="response-content"></pre>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
