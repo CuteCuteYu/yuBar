@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameInput = row.querySelector('.header-name');
         const valueSelect = row.querySelector('select.user-agent-select');
         const valueInput = row.querySelector('input.header-value');
-        
+
         if (nameInput.value) {
           let headerValue;
           if (valueSelect && valueSelect.style.display !== 'none') {
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             headerValue = valueInput.value;
           }
-          
+
           if (headerValue) {
             headers.push({
               name: nameInput.value,
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // First update the header rules
+      // Update the header rules first
       await new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
           action: 'updateHeaders',
@@ -215,25 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      // Then make the request
-      const fetchOptions = {
-        method: methodSelect.value,
-        credentials: 'include'
-      };
+      // Open URL in a new tab
+      chrome.tabs.create({ url: urlInput.value });
 
-      if (methodSelect.value !== 'GET' && requestBodyTextarea.value) {
-        fetchOptions.body = requestBodyTextarea.value;
-      }
-
-      const response = await fetch(urlInput.value, fetchOptions);
-      const responseText = await response.text();
-      
-      // Format response headers
-      const headersList = Array.from(response.headers.entries())
-        .map(([name, value]) => `${name}: ${value}`)
-        .join('\n');
-
-      responseContent.textContent = `Status: ${response.status} ${response.statusText}\n\nHeaders:\n${headersList}\n\nBody:\n${responseText}`;
+      // Update response content to indicate the action
+      responseContent.textContent = `Headers updated. Opening ${urlInput.value} in a new tab...`;
     } catch (error) {
       responseContent.textContent = `Error: ${error.message}`;
     }
