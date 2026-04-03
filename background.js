@@ -1,32 +1,34 @@
-// Store request data using chrome.storage
+const REQUEST_RULE_ID = 1;
 let currentTabRequest = null;
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ requestCache: {} });
-
-  // Set up initial rules with a default header modification
-  chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [1],
-    addRules: [{
-      id: 1,
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        requestHeaders: [{
-          header: 'X-Request-Inspector',
-          operation: 'set',
-          value: 'active'
-        }]
-      },
-      condition: {
-        urlFilter: '*',
-        resourceTypes: ['main_frame']
-      }
-    }]
-  });
+chrome.runtime.onInstalled.addListener(async () => {
+  try {
+    await chrome.storage.local.set({ requestCache: {} });
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [REQUEST_RULE_ID],
+      addRules: [{
+        id: REQUEST_RULE_ID,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          requestHeaders: [{
+            header: 'X-Request-Inspector',
+            operation: 'set',
+            value: 'active'
+          }]
+        },
+        condition: {
+          urlFilter: '*',
+          resourceTypes: ['main_frame']
+        }
+      }]
+    });
+    console.log('Extension installed and rules initialized');
+  } catch (error) {
+    console.error('Failed to initialize extension:', error);
+  }
 });
 
-// Capture request headers
 chrome.webRequest.onSendHeaders.addListener(
   (details) => {
     if (details.type === 'main_frame') {
@@ -43,7 +45,7 @@ chrome.webRequest.onSendHeaders.addListener(
       
       currentTabRequest = requestData;
       
-      chrome.storage.local.get('requestCache', (data) => {
+      chrome.storage.local.get('requestCache').then(data => {
         const cache = data.requestCache || {};
         cache[details.tabId] = requestData;
         chrome.storage.local.set({ requestCache: cache });
@@ -54,7 +56,6 @@ chrome.webRequest.onSendHeaders.addListener(
   ['requestHeaders']
 );
 
-// Capture response headers
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
     if (details.type === 'main_frame' && currentTabRequest && currentTabRequest.tabId === details.tabId) {
@@ -63,7 +64,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         value: h.value
       }));
       
-      chrome.storage.local.get('requestCache', (data) => {
+      chrome.storage.local.get('requestCache').then(data => {
         const cache = data.requestCache || {};
         if (cache[details.tabId]) {
           cache[details.tabId].responseHeaders = currentTabRequest.responseHeaders;
@@ -76,19 +77,34 @@ chrome.webRequest.onHeadersReceived.addListener(
   ['responseHeaders']
 );
 
-// Clean up cache when tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
-  chrome.storage.local.get('requestCache', (data) => {
+  chrome.storage.local.get('requestCache').then(data => {
     const cache = data.requestCache || {};
     delete cache[tabId];
     chrome.storage.local.set({ requestCache: cache });
   });
+  if (currentTabRequest && currentTabRequest.tabId === tabId) {
+    currentTabRequest = null;
+  }
 });
 
-// Handle messages from popup
+chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+  chrome.storage.local.get('requestCache').then(data => {
+    const cache = data.requestCache || {};
+    if (cache[removedTabId]) {
+      cache[addedTabId] = cache[removedTabId];
+      delete cache[removedTabId];
+      chrome.storage.local.set({ requestCache: cache });
+    }
+  });
+  if (currentTabRequest && currentTabRequest.tabId === removedTabId) {
+    currentTabRequest = null;
+  }
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getCurrentRequest') {
-    chrome.storage.local.get('requestCache', (data) => {
+    chrome.storage.local.get('requestCache').then(data => {
       const cache = data.requestCache || {};
       const requestData = cache[request.tabId];
       if (requestData) {
@@ -101,30 +117,91 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'updateHeaders') {
-    try {
-      chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: [1],
-        addRules: [{
-          id: 1,
-          priority: 1,
-          action: {
-            type: 'modifyHeaders',
-            requestHeaders: request.headers.map(header => ({
-              header: header.name,
-              operation: 'set',
-              value: header.value
-            }))
-          },
-          condition: {
-            urlFilter: request.url || '*',
-            resourceTypes: ['main_frame']
+    (async () => {
+      try {
+        const headers = request.headers || [];
+        const urlFilter = request.url ? request.url : '*';
+        
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: [REQUEST_RULE_ID],
+          addRules: [{
+            id: REQUEST_RULE_ID,
+            priority: 1,
+            action: {
+              type: 'modifyHeaders',
+              requestHeaders: headers.map(header => ({
+                header: header.name,
+                operation: 'set',
+                value: header.value
+              }))
+            },
+            condition: {
+              urlFilter: urlFilter,
+              resourceTypes: ['main_frame']
+            }
+          }]
+        });
+        
+        if (request.openTab && request.url) {
+          const tab = await chrome.tabs.create({ url: request.url });
+          sendResponse({ success: true, tabId: tab.id });
+        } else {
+          sendResponse({ success: true });
+        }
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === 'sendRequest') {
+    (async () => {
+      try {
+        const headers = request.headers || [];
+        
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: [REQUEST_RULE_ID],
+          addRules: [{
+            id: REQUEST_RULE_ID,
+            priority: 1,
+            action: {
+              type: 'modifyHeaders',
+              requestHeaders: headers.map(header => ({
+                header: header.name,
+                operation: 'set',
+                value: header.value
+              }))
+            },
+            condition: {
+              urlFilter: request.url || '*',
+              resourceTypes: ['main_frame']
+            }
+          }]
+        });
+
+        let url = request.url;
+        const method = request.method || 'GET';
+        
+        if (method === 'GET' && request.body) {
+          const params = new URLSearchParams(request.body).toString();
+          if (params) {
+            url = url.includes('?') ? `${url}&${params}` : `${url}?${params}`;
           }
-        }]
-      });
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+        }
+
+        const createProps = { url };
+        if (method !== 'GET' && request.body) {
+          createProps.method = method;
+          createProps.body = request.body;
+        }
+
+        const tab = await chrome.tabs.create(createProps);
+        sendResponse({ success: true, tabId: tab.id });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
     return true;
   }
 });
