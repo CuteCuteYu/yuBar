@@ -159,6 +159,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         const headers = request.headers || [];
+        const url = request.url;
+        const method = request.method || 'GET';
         
         await chrome.declarativeNetRequest.updateDynamicRules({
           removeRuleIds: [REQUEST_RULE_ID],
@@ -174,30 +176,61 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               }))
             },
             condition: {
-              urlFilter: request.url || '*',
+              urlFilter: url || '*',
               resourceTypes: ['main_frame']
             }
           }]
         });
 
-        let url = request.url;
-        const method = request.method || 'GET';
-        
-        if (method === 'GET' && request.body) {
-          const params = new URLSearchParams(request.body).toString();
-          if (params) {
-            url = url.includes('?') ? `${url}&${params}` : `${url}?${params}`;
+        if (method === 'GET') {
+          const tab = await chrome.tabs.create({ url });
+          sendResponse({ success: true, tabId: tab.id, redirected: true });
+        } else {
+          const requestBody = (method === 'POST' || method === 'PUT' || method === 'PATCH') ? request.body : '';
+          
+          const fetchOptions = {
+            method: method,
+            headers: headers.reduce((acc, h) => {
+              acc[h.name] = h.value;
+              return acc;
+            }, {})
+          };
+          
+          if (requestBody) {
+            fetchOptions.body = requestBody;
+          }
+          
+          try {
+            const response = await fetch(url, fetchOptions);
+            const responseHeaders = {};
+            response.headers.forEach((value, name) => {
+              responseHeaders[name] = value;
+            });
+            
+            let responseBody = '';
+            try {
+              responseBody = await response.text();
+            } catch (e) {
+              responseBody = '[Unable to read response body]';
+            }
+            
+            sendResponse({ 
+              success: true, 
+              redirected: false,
+              response: {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders,
+                body: responseBody
+              }
+            });
+          } catch (fetchError) {
+            sendResponse({ 
+              success: false, 
+              error: `Request failed: ${fetchError.message}` 
+            });
           }
         }
-
-        const createProps = { url };
-        if (method !== 'GET' && request.body) {
-          createProps.method = method;
-          createProps.body = request.body;
-        }
-
-        const tab = await chrome.tabs.create(createProps);
-        sendResponse({ success: true, tabId: tab.id });
       } catch (error) {
         sendResponse({ success: false, error: error.message });
       }

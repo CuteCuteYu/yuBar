@@ -19,19 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     'Edge (Windows)': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
   };
 
-  document.getElementById('capture')?.addEventListener('click', () => {
-    console.log('Capture button clicked');
-    captureCurrentRequest();
-  });
-  document.getElementById('send')?.addEventListener('click', () => {
-    console.log('Send button clicked');
-    sendRequest();
-  });
+  document.getElementById('capture')?.addEventListener('click', () => captureCurrentRequest());
+  document.getElementById('send')?.addEventListener('click', () => sendRequest());
   document.getElementById('clear')?.addEventListener('click', clearForm);
-  document.getElementById('add-header')?.addEventListener('click', () => {
-    console.log('Add header clicked');
-    addHeaderRow();
-  });
+  document.getElementById('add-header')?.addEventListener('click', () => addHeaderRow());
 
   captureCurrentRequest();
 
@@ -221,7 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (response?.success) {
-        responseContent.textContent = `Request sent successfully!\nMethod: ${method}\nURL: ${url}\nTab ID: ${response.tabId}`;
+        if (response.redirected) {
+          responseContent.textContent = `Request sent successfully!\nMethod: ${method}\nURL: ${url}\nTab ID: ${response.tabId}`;
+        } else if (response.response) {
+          const { status, statusText, headers: respHeaders, body: respBody } = response.response;
+          const headersText = Object.entries(respHeaders).map(([k, v]) => `${k}: ${v}`).join('\n');
+          responseContent.textContent = `Status: ${status} ${statusText}\n\nResponse Headers:\n${headersText}\n\nResponse Body:\n${respBody}`;
+        } else {
+          responseContent.textContent = `Request sent successfully!\nMethod: ${method}\nURL: ${url}`;
+        }
       } else {
         responseContent.textContent = `Error: ${response?.error || 'Failed to send request'}`;
       }
