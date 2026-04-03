@@ -14,7 +14,8 @@ yuBar is a lightweight Chrome browser extension, an alternative to Hackerbar, th
   - Safari (iOS)
   - Edge (Windows)
 - **Response Header Viewing** - View server response headers
-- **Custom Requests** - Support for GET, POST, PUT, DELETE, HEAD, OPTIONS methods
+- **Custom Requests** - Support for GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS methods
+- **Smart Request Handling** - GET requests open in new tab; other methods display response in popup
 
 > **中文**: [查看中文版 README](./README_CN.md)
 
@@ -97,8 +98,12 @@ yuBar/
    - In the Headers section, you can add, edit, or delete request headers
    - When selecting "User-Agent" as the header name, a preset browser selection dropdown will appear
    - You can also select "Custom User-Agent" to enter a custom User-Agent string
-4. **Send Request**: After modifications, click "Send Request" to open the target URL in a new tab with the modified headers
-5. **Clear Form**: Click "Clear" to reset all inputs
+4. **Select HTTP Method**: Choose from GET, POST, PUT, PATCH, DELETE, HEAD, or OPTIONS
+5. **Request Body**: Enter request body content for POST, PUT, or PATCH requests
+6. **Send Request**: 
+   - For GET requests: Opens the URL in a new tab with modified headers
+   - For other methods: Displays response status, headers, and body directly in the popup
+7. **Clear Form**: Click "Clear" to reset all inputs
 
 ## Permissions
 

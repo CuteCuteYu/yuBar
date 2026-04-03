@@ -14,7 +14,8 @@ yuBar 是一款轻量级的 Chrome 浏览器扩展，是 Hackerbar 的替代方�
   - Safari (iOS)
   - Edge (Windows)
 - **响应头查看** - 查看服务器返回的响应头信息
-- **自定义请求** - 支持 GET、POST、PUT、DELETE、HEAD、OPTIONS 等方法
+- **自定义请求** - 支持 GET、POST、PUT、PATCH、DELETE、HEAD、OPTIONS 等方法
+- **智能请求处理** - GET 请求在新标签页打开，其他方法在 popup 中直接显示响应内容
 
 ## 项目结构
 
@@ -95,8 +96,12 @@ yuBar/
    - 在 Headers 区域可以添加、编辑或删除请求头
    - 选择 Header 名称为「User-Agent」时，会出现预设的浏览器选择下拉框
    - 也可以选择「Custom User-Agent」输入自定义的 User-Agent 字符串
-4. **发送请求**：修改完成后，点击「Send Request」按钮，扩展会使用修改后的请求头在新标签页中打开目标 URL
-5. **清空表单**：点击「Clear」按钮可以清空所有输入内容
+4. **选择 HTTP 方法**：从 GET、POST、PUT、PATCH、DELETE、HEAD、OPTIONS 中选择
+5. **请求体**：为 POST、PUT、PATCH 请求输入请求体内容
+6. **发送请求**：
+   - GET 请求：在新标签页中打开 URL 并应用修改后的请求头
+   - 其他方法：在 popup 中直接显示响应状态、响应头和响应体
+7. **清空表单**：点击「Clear」按钮可以清空所有输入内容
 
 ## 扩展权限说明
 
