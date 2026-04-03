@@ -19,10 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     'Edge (Windows)': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
   };
 
-  document.getElementById('capture')?.addEventListener('click', captureCurrentRequest);
-  document.getElementById('send')?.addEventListener('click', sendRequest);
+  document.getElementById('capture')?.addEventListener('click', () => {
+    console.log('Capture button clicked');
+    captureCurrentRequest();
+  });
+  document.getElementById('send')?.addEventListener('click', () => {
+    console.log('Send button clicked');
+    sendRequest();
+  });
   document.getElementById('clear')?.addEventListener('click', clearForm);
-  document.getElementById('add-header')?.addEventListener('click', () => addHeaderRow());
+  document.getElementById('add-header')?.addEventListener('click', () => {
+    console.log('Add header clicked');
+    addHeaderRow();
+  });
 
   captureCurrentRequest();
 
